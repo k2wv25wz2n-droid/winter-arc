@@ -1,0 +1,17 @@
+/* Winter Arc cinematic splash, mobile and desktop */
+.wa-splash{position:fixed;inset:0;z-index:9999;background:#080808;color:#fff;overflow:hidden;cursor:pointer;isolation:isolate;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wa-splash-photo{position:absolute;inset:0;background-size:cover;background-position:center 35%;filter:grayscale(1) contrast(1.18) brightness(.65);transform:scale(1.04);animation:wa-zoom 8s ease-out forwards}
+.wa-splash-preload{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.wa-splash-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,.15) 30%,rgba(0,0,0,.75) 72%,#050505 100%)}
+.wa-splash-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:max(25px,env(safe-area-inset-top)) 28px;font-size:10px;font-weight:800;letter-spacing:2px}
+.wa-splash-top span:first-child{border:1px solid #999;border-radius:7px;padding:10px 9px;font-size:13px}
+.wa-splash-copy{position:absolute;left:max(28px,env(safe-area-inset-left));right:max(28px,env(safe-area-inset-right));bottom:calc(65px + env(safe-area-inset-bottom));max-width:880px;animation:wa-rise .7s ease-out both}
+.wa-splash-kicker{font-size:11px;letter-spacing:3px;font-weight:800;color:#bbb;margin-bottom:18px}
+.wa-splash-copy h1{font-size:clamp(38px,7vw,88px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;font-weight:900;max-width:850px}
+.wa-splash-player{font-size:12px;letter-spacing:3px;font-weight:700;color:#ddd;margin-bottom:32px}
+.wa-splash-track{height:3px;background:#4a4a4a;max-width:420px;overflow:hidden}
+.wa-splash-fill{height:100%;background:#fff;width:0;animation:wa-fill 8s linear forwards}
+.wa-splash-hint{font-size:9px;color:#999;letter-spacing:2px;margin-top:13px}
+@keyframes wa-fill{to{width:100%}}@keyframes wa-rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}@keyframes wa-zoom{to{transform:scale(1)}}
+@media(max-width:700px){.wa-splash-top{padding-inline:20px}.wa-splash-copy{left:22px;right:22px;bottom:calc(54px + env(safe-area-inset-bottom))}.wa-splash-copy h1{font-size:clamp(38px,11vw,62px);letter-spacing:-1.5px}.wa-splash-photo{background-position:center 28%}}
+@media(prefers-reduced-motion:reduce){.wa-splash-fill,.wa-splash-copy,.wa-splash-photo{animation:none}.wa-splash-fill{width:100%}}
