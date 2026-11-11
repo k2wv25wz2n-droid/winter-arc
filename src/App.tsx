@@ -2,9 +2,13 @@
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import {
+  DAILY_TASKS,
+  getTodayKey,
+  subscribeToDailyProgress,
+  saveDailyProgress,
+} from "./dailyProgress";
 import "./App.css";
-
-const STORAGE_KEY = "winter-arc-completed-tasks";
 
 const navigation = [
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
@@ -16,43 +20,20 @@ const navigation = [
   { id: "journal", label: "Journal", icon: "▤" },
 ];
 
-const initialTasks = [
-  "Morgenroutine",
-  "Ernährung einhalten",
-  "Training absolvieren",
-  "Mobility & Regeneration",
-  "Abend-Check-out",
-];
-
-function loadCompletedTasks(): string[] {
-  try {
-    const savedTasks = localStorage.getItem(STORAGE_KEY);
-
-    if (!savedTasks) return [];
-
-    const parsedTasks: unknown = JSON.parse(savedTasks);
-
-    if (!Array.isArray(parsedTasks)) return [];
-
-    return parsedTasks.filter(
-      (task): task is string =>
-        typeof task === "string" && initialTasks.includes(task)
-    );
-  } catch {
-    return [];
-  }
-}
-
 function App() {
   const [activePage, setActivePage] = useState("dashboard");
-  const [completedTasks, setCompletedTasks] =
-    useState<string[]>(loadCompletedTasks);
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [moreOpen, setMoreOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoutError, setLogoutError] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [syncReady, setSyncReady] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [today, setToday] = useState(getTodayKey);
 
+  const userId = auth.currentUser?.uid;
   const progress = Math.round(
-    (completedTasks.length / initialTasks.length) * 100
+    (completedTasks.length / DAILY_TASKS.length) * 100
   );
 
   const mainNavigation = navigation.filter((item) =>
@@ -71,17 +52,39 @@ function App() {
     navigation.find((item) => item.id === activePage)?.label ??
     "Dashboard";
 
-  // Lokale Speicherung bleibt vorerst erhalten.
+  // Prüft regelmäßig, ob ein neuer Tag begonnen hat.
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(completedTasks)
-      );
-    } catch (error) {
-      console.error("Speichern fehlgeschlagen:", error);
-    }
-  }, [completedTasks]);
+    const interval = window.setInterval(() => {
+      setToday(getTodayKey());
+    }, 30_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // Empfängt den aktuellen Tagesstand aus Firestore.
+  useEffect(() => {
+    if (!userId) return;
+
+    setSyncReady(false);
+    setSyncError("");
+    setCompletedTasks([]);
+
+    const unsubscribe = subscribeToDailyProgress(
+      userId,
+      today,
+      (tasks) => {
+        setCompletedTasks(tasks);
+        setSyncReady(true);
+      },
+      (error) => {
+        console.error("Firestore-Synchronisierung:", error);
+        setSyncError("Cloud-Verbindung fehlgeschlagen.");
+        setSyncReady(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [userId, today]);
 
   function changePage(page: string) {
     setActivePage(page);
@@ -89,12 +92,28 @@ function App() {
     setProfileOpen(false);
   }
 
-  function toggleTask(task: string) {
-    setCompletedTasks((current) =>
-      current.includes(task)
-        ? current.filter((item) => item !== task)
-        : [...current, task]
-    );
+  async function toggleTask(task: string) {
+    if (!userId || !syncReady || saving) return;
+
+    const previousTasks = completedTasks;
+
+    const nextTasks = previousTasks.includes(task)
+      ? previousTasks.filter((item) => item !== task)
+      : [...previousTasks, task];
+
+    setCompletedTasks(nextTasks);
+    setSaving(true);
+    setSyncError("");
+
+    try {
+      await saveDailyProgress(userId, today, nextTasks);
+    } catch (error) {
+      console.error("Cloud-Speicherung:", error);
+      setCompletedTasks(previousTasks);
+      setSyncError("Speichern fehlgeschlagen. Bitte erneut versuchen.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleLogout() {
@@ -111,7 +130,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      {/* DESKTOP SIDEBAR */}
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">W</div>
@@ -145,12 +163,10 @@ function App() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumb">WINTER ARC / 2026–27</div>
 
-          {/* PROFILMENÜ */}
           <div style={{ position: "relative" }}>
             <button
               type="button"
@@ -233,14 +249,7 @@ function App() {
                 </button>
 
                 {logoutError && (
-                  <p
-                    role="alert"
-                    style={{
-                      color: "#ff8585",
-                      fontSize: "11px",
-                      margin: "8px",
-                    }}
-                  >
+                  <p role="alert" style={{ color: "#ff8585", fontSize: "11px" }}>
                     {logoutError}
                   </p>
                 )}
@@ -251,7 +260,6 @@ function App() {
 
         {activePage === "dashboard" ? (
           <div className="dashboard">
-            {/* WELCOME */}
             <section className="welcome">
               <div>
                 <div className="eyebrow">
@@ -267,7 +275,6 @@ function App() {
               </div>
             </section>
 
-            {/* WINTER ARC PROGRESS */}
             <section className="arc-card">
               <div className="section-heading">
                 <div>
@@ -286,10 +293,7 @@ function App() {
               </div>
 
               <div className="progress-track">
-                <div
-                  className="progress-fill"
-                  style={{ width: "0%" }}
-                />
+                <div className="progress-fill" style={{ width: "0%" }} />
               </div>
 
               <div className="progress-caption">
@@ -298,13 +302,12 @@ function App() {
               </div>
             </section>
 
-            {/* OVERVIEW */}
             <section className="overview-grid">
               <div className="stat-card">
                 <div className="card-label">DAILY PROGRESS</div>
                 <div className="stat-value">{progress}%</div>
                 <div className="stat-note">
-                  {completedTasks.length} OF {initialTasks.length} TASKS
+                  {completedTasks.length} OF {DAILY_TASKS.length} TASKS
                 </div>
               </div>
 
@@ -313,21 +316,16 @@ function App() {
                 <div className="stat-value">
                   0 <small>DAYS</small>
                 </div>
-                <div className="stat-note">
-                  BUILD YOUR CONSISTENCY
-                </div>
+                <div className="stat-note">BUILD YOUR CONSISTENCY</div>
               </div>
 
               <div className="stat-card">
                 <div className="card-label">ACTIVE QUESTS</div>
                 <div className="stat-value">0</div>
-                <div className="stat-note">
-                  OPTIONAL CHALLENGES
-                </div>
+                <div className="stat-note">OPTIONAL CHALLENGES</div>
               </div>
             </section>
 
-            {/* DAILY PLAN AND RECOVERY */}
             <section className="content-grid">
               <div className="panel daily-panel">
                 <div className="panel-heading">
@@ -337,29 +335,38 @@ function App() {
                   </div>
 
                   <span className="panel-count">
-                    {completedTasks.length}/{initialTasks.length}
+                    {completedTasks.length}/{DAILY_TASKS.length}
                   </span>
                 </div>
 
+                {syncError && (
+                  <p role="alert" style={{ color: "#ff8585", fontSize: "12px" }}>
+                    {syncError}
+                  </p>
+                )}
+
+                {!syncReady && !syncError && (
+                  <p style={{ color: "#888", fontSize: "12px" }}>
+                    Lade Tagesfortschritt ...
+                  </p>
+                )}
+
                 <div className="task-list">
-                  {initialTasks.map((task, index) => {
+                  {DAILY_TASKS.map((task, index) => {
                     const completed = completedTasks.includes(task);
 
                     return (
                       <button
                         type="button"
+                        disabled={!syncReady || saving}
                         className={`task-item ${
                           completed ? "completed" : ""
                         }`}
                         key={task}
                         onClick={() => toggleTask(task)}
                       >
-                        <span className="task-number">
-                          0{index + 1}
-                        </span>
-
+                        <span className="task-number">0{index + 1}</span>
                         <span className="task-name">{task}</span>
-
                         <span className="task-check">
                           {completed ? "✓" : ""}
                         </span>
@@ -376,23 +383,17 @@ function App() {
 
                   <div className="recovery-item">
                     <span>Sleep</span>
-                    <strong>
-                      — <small>h</small>
-                    </strong>
+                    <strong>— <small>h</small></strong>
                   </div>
 
                   <div className="recovery-item">
                     <span>Water</span>
-                    <strong>
-                      — <small>litres</small>
-                    </strong>
+                    <strong>— <small>litres</small></strong>
                   </div>
 
                   <div className="recovery-item">
                     <span>Energy</span>
-                    <strong>
-                      — <small>/ 5</small>
-                    </strong>
+                    <strong>— <small>/ 5</small></strong>
                   </div>
                 </div>
 
@@ -416,14 +417,11 @@ function App() {
           <section className="placeholder-page">
             <div className="eyebrow">WINTER ARC / 2026–27</div>
             <h1>{activePageLabel}</h1>
-            <p>
-              This section will be built in the next development steps.
-            </p>
+            <p>This section will be built in the next development steps.</p>
           </section>
         )}
       </main>
 
-      {/* MOBILE NAVIGATION */}
       <nav className="mobile-navigation">
         {mainNavigation.map((item) => (
           <button
@@ -455,7 +453,6 @@ function App() {
         </button>
       </nav>
 
-      {/* MOBILE MORE MENU */}
       {moreOpen && (
         <div
           style={{
