@@ -6,7 +6,10 @@ import { getTodayKey } from "./dailyProgress";
 type Exercise = { id: string; name: string; sets?: number; reps?: number; weight?: number; minutes?: number; note?: string; phase: "warmup" | "main" | "cooldown" };
 type Workout = { id: "A" | "B" | "C"; day: string; subtitle: string; exercises: Exercise[] };
 type SetRecord = { weight: string; reps: string; done: boolean };
-type Session = { workoutId: string; date: string; sets: Record<string, SetRecord[]>; checks: string[]; finished: boolean; updatedAt: string; startedAt?: string; finishedAt?: string };
+type RunData = { duration: string; distance: string; avgHeartRate: string; maxHeartRate: string; effort: string; notes: string; intervals: { distance: string; avgHeartRate: string }[] };
+const emptyRun = (): RunData => ({ duration: "", distance: "", avgHeartRate: "", maxHeartRate: "", effort: "", notes: "", intervals: Array.from({ length: 4 }, () => ({ distance: "", avgHeartRate: "" })) });
+type TrainingId = "A" | "B" | "C" | "RUN" | "INTERVAL";
+type Session = { runData?: RunData; workoutId: string; date: string; sets: Record<string, SetRecord[]>; checks: string[]; finished: boolean; updatedAt: string; startedAt?: string; finishedAt?: string };
 
 const workouts: Workout[] = [
   { id: "A", day: "MITTWOCH", subtitle: "GYM A", exercises: [
@@ -61,17 +64,18 @@ function getSet(session: Session, exercise: Exercise, index: number): SetRecord 
 function displayNumber(value: string) { return value.replace(".", ","); }
 
 export default function Training() {
-  const [workoutId, setWorkoutId] = useState<"A" | "B" | "C">("A");
+  const [workoutId, setWorkoutId] = useState<TrainingId>("A");
   const [date, setDate] = useState(getTodayKey);
   const [session, setSession] = useState<Session>(emptySession("A", getTodayKey()));
   const [history, setHistory] = useState<Session[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
-  const [historyWorkout, setHistoryWorkout] = useState<"ALL" | "A" | "B" | "C">("ALL");
+  const [historyWorkout, setHistoryWorkout] = useState<"ALL" | TrainingId>("ALL");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const userId = auth.currentUser?.uid;
-  const workout = workouts.find((item) => item.id === workoutId)!;
+  const workout = workouts.find((item) => item.id === workoutId);
+  const isRun = workoutId === "RUN" || workoutId === "INTERVAL";
   const docId = `${date}_${workoutId}`;
 
   useEffect(() => {
@@ -89,14 +93,14 @@ export default function Training() {
     if (!userId) return;
     setHistoryReady(false);
     return onSnapshot(collection(db, "users", userId, "trainingSessions"), (snap) => {
-      setHistory(snap.docs.map((item) => item.data() as Session).filter((item) => item.finished && typeof item.date === "string" && ["A", "B", "C"].includes(item.workoutId)).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)));
+      setHistory(snap.docs.map((item) => item.data() as Session).filter((item) => item.finished && typeof item.date === "string" && ["A", "B", "C", "RUN", "INTERVAL"].includes(item.workoutId)).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)));
       setHistoryReady(true);
     }, () => { setError("Trainingshistorie konnte nicht geladen werden."); setHistoryReady(false); });
   }, [userId]);
 
-  const total = useMemo(() => workout.exercises.reduce((sum, ex) => sum + (ex.sets ?? 1), 0), [workout]);
-  const done = workout.exercises.reduce<number>((sum, ex) => sum + (ex.sets ? Array.from({ length: ex.sets }, (_, i) => getSet(session, ex, i).done ? 1 : 0).reduce<number>((a, b) => a + b, 0) : session.checks.includes(ex.id) ? 1 : 0), 0);
-  const percentage = Math.round(done / total * 100);
+  const total = useMemo(() => (workout?.exercises ?? []).reduce((sum, ex) => sum + (ex.sets ?? 1), 0), [workout]);
+  const done = (workout?.exercises ?? []).reduce<number>((sum, ex) => sum + (ex.sets ? Array.from({ length: ex.sets }, (_, i) => getSet(session, ex, i).done ? 1 : 0).reduce<number>((a, b) => a + b, 0) : session.checks.includes(ex.id) ? 1 : 0), 0);
+  const percentage = total ? Math.round(done / total * 100) : 0;
   const filteredHistory = history.filter((item) => historyWorkout === "ALL" || item.workoutId === historyWorkout);
   const totalSets = history.reduce((sum, item) => sum + Object.values(item.sets ?? {}).reduce((n, sets) => n + sets.filter((set) => set.done).length, 0), 0);
   const arcSessions = history.filter((item) => item.date >= "2026-11-29" && item.date <= "2027-01-22").length;
@@ -153,28 +157,34 @@ export default function Training() {
           Train. Track. Progress.
         </h1>
         <p style={{ color: "#888", margin: 0 }}>
-          Deine festen Workouts. Jeder Satz zählt.
+          Deine Workouts und Läufe. Jeder Fortschritt zählt.
         </p>
       </header>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 22 }}>
-        {workouts.map((item) => <button key={item.id} type="button" onClick={() => setWorkoutId(item.id)} style={{ cursor: "pointer", borderRadius: 12, padding: "16px 8px", background: item.id === workoutId ? "#f5f5f5" : "#1c1c1c", color: item.id === workoutId ? "#111" : "#ddd", border: "1px solid #383838", fontWeight: 700 }}><span style={{ display: "block", fontSize: 11, opacity: .65, marginBottom: 5 }}>{item.day}</span>GYM {item.id}</button>)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 10, marginBottom: 22 }}>
+        {[...workouts, { id: "RUN" as const, day: "MONTAG", subtitle: "DAUERLAUF" }, { id: "INTERVAL" as const, day: "DONNERSTAG", subtitle: "INTERVALLE" }].map((item) => <button key={item.id} type="button" onClick={() => setWorkoutId(item.id)} style={{ cursor: "pointer", borderRadius: 12, padding: "16px 8px", background: item.id === workoutId ? "#f5f5f5" : "#1c1c1c", color: item.id === workoutId ? "#111" : "#ddd", border: "1px solid #383838", fontWeight: 700 }}><span style={{ display: "block", fontSize: 11, opacity: .65, marginBottom: 5 }}>{item.day}</span>{item.id === "RUN" ? "LAUF" : item.id === "INTERVAL" ? "4 × 4" : `GYM ${item.id}`}</button>)}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
-        <div><h2 style={{ margin: 0, fontSize: 24 }}>{workout.subtitle}</h2><div style={{ color: "#999", fontSize: 12, marginTop: 5 }}>{done} / {total} Schritte abgeschlossen</div></div>
+        <div><h2 style={{ margin: 0, fontSize: 24 }}>{workout?.subtitle ?? (workoutId === "RUN" ? "Grundlagenausdauer" : "VO₂max – 4 × 4")}</h2><div style={{ color: "#999", fontSize: 12, marginTop: 5 }}>{isRun ? "Messwerte aus Zepp eintragen" : `${done} / ${total} Schritte abgeschlossen`}</div></div>
         <label style={{ fontSize: 12, color: "#aaa" }}>TRAININGSDATUM <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ display: "block", marginTop: 5, padding: 10, borderRadius: 8, border: "1px solid #444", background: "#1a1a1a", color: "#fff", colorScheme: "dark" }} /></label>
       </div>
-      <div style={{ height: 6, background: "#333", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}><div style={{ height: "100%", width: `${percentage}%`, background: "#f5f5f5", transition: "width .2s" }} /></div>
-      <div style={{ textAlign: "right", color: "#aaa", fontSize: 12, marginBottom: 22 }}>{percentage}%</div>
+      {!isRun && (
+        <>
+          <div style={{ height: 6, background: "#333", borderRadius: 99, overflow: "hidden", marginBottom: 8 }}>
+            <div style={{ height: "100%", width: `${percentage}%`, background: "#f5f5f5", transition: "width .2s" }} />
+          </div>
+          <div style={{ textAlign: "right", color: "#aaa", fontSize: 12, marginBottom: 22 }}>{percentage}%</div>
+        </>
+      )}
       {error && <p role="alert" style={{ color: "#ff8888" }}>{error}</p>}
       {!ready ? <p style={{ color: "#aaa" }}>Training wird geladen ...</p> : <>
-        {(["warmup", "main", "cooldown"] as const).map((phase) => {
-          const exercises = workout.exercises.filter((ex) => ex.phase === phase);
+        {isRun ? <RunEditor key={`${workoutId}_${date}`} data={session.runData ?? emptyRun()} interval={workoutId === "INTERVAL"} busy={busy} onSave={(data) => void persist({ ...session, runData: data, finished: false })} /> : (["warmup", "main", "cooldown"] as const).map((phase) => {
+          const exercises = workout!.exercises.filter((ex) => ex.phase === phase);
           if (!exercises.length) return null;
           return <div key={phase} style={{ marginBottom: 28 }}><div className="eyebrow" style={{ marginBottom: 12 }}>{phase === "warmup" ? "01 / WARM-UP" : phase === "main" ? "02 / WORKOUT" : "03 / COOLDOWN"}</div>
             {exercises.map((ex) => <ExerciseCard key={ex.id} exercise={ex} session={session} busy={busy} onToggle={() => toggleCheck(ex.id)} onSave={(index, value) => saveSet(ex, index, value)} />)}
           </div>;
         })}
-        <p style={{ color: "#888", fontSize: 12, lineHeight: 1.6 }}>Die Übungen und bekannten Werte stammen aus deinen Screenshots. Nicht sichtbare Cooldown-Übungen und fehlende Angaben wurden nicht ergänzt.</p>
+        {!isRun && <p style={{ color: "#888", fontSize: 12, lineHeight: 1.6 }}>Die Übungen und bekannten Werte stammen aus deinen Screenshots. Nicht sichtbare Cooldown-Übungen und fehlende Angaben wurden nicht ergänzt.</p>}
         <button type="button" disabled={busy} onClick={() => void persist({ ...session, finished: !session.finished })} style={{ width: "100%", marginTop: 12, padding: 17, borderRadius: 10, border: "1px solid #777", background: session.finished ? "#292929" : "#f5f5f5", color: session.finished ? "#fff" : "#111", fontWeight: 800, cursor: "pointer" }}>{session.finished ? "TRAINING ALS ABGESCHLOSSEN MARKIERT ✓" : "TRAINING ABSCHLIESSEN"}</button>
       </>}
       <div style={{ marginTop: 38 }}>
@@ -190,17 +200,17 @@ export default function Training() {
         </div>
         <div className="eyebrow" style={{ marginBottom: 12 }}>TRAININGSHISTORIE</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-          {(["ALL", "A", "B", "C"] as const).map((filter) =>
+          {(["ALL", "A", "B", "C", "RUN", "INTERVAL"] as const).map((filter) =>
             <button key={filter} type="button" onClick={() => setHistoryWorkout(filter)} style={{ padding: "9px 15px", borderRadius: 8, border: "1px solid #444", background: historyWorkout === filter ? "#eee" : "#222", color: historyWorkout === filter ? "#111" : "#eee", cursor: "pointer", fontWeight: 700 }}>
-              {filter === "ALL" ? "ALLE" : `GYM ${filter}`}
+              {filter === "ALL" ? "ALLE" : filter === "RUN" ? "DAUERLAUF" : filter === "INTERVAL" ? "INTERVALLE" : `GYM ${filter}`}
             </button>
           )}
         </div>
         {!historyReady ? <p style={{ color: "#999" }}>Historie wird geladen ...</p> : filteredHistory.length ? filteredHistory.map((item) => {
           const completedSets = Object.values(item.sets ?? {}).reduce((sum, sets) => sum + sets.filter((set) => set.done).length, 0);
           const duration = getDurationMinutes(item);
-          return <button key={`${item.date}_${item.workoutId}`} type="button" onClick={() => { setWorkoutId(item.workoutId as "A" | "B" | "C"); setDate(item.date); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 12, padding: 16, marginBottom: 9, background: "#191919", color: "#eee", border: "1px solid #333", borderRadius: 10, cursor: "pointer", textAlign: "left" }}>
-            <span><strong>GYM {item.workoutId}</strong><span style={{ display: "block", fontSize: 12, color: "#999", marginTop: 5 }}>{formatDate(item.date)} · {completedSets} Sätze{duration !== null ? ` · ${duration} Min.` : ""}</span></span>
+          return <button key={`${item.date}_${item.workoutId}`} type="button" onClick={() => { setWorkoutId(item.workoutId as TrainingId); setDate(item.date); window.scrollTo({ top: 0, behavior: "smooth" }); }} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: 12, padding: 16, marginBottom: 9, background: "#191919", color: "#eee", border: "1px solid #333", borderRadius: 10, cursor: "pointer", textAlign: "left" }}>
+            <span><strong>{item.workoutId === "RUN" ? "DAUERLAUF" : item.workoutId === "INTERVAL" ? "INTERVALLE" : `GYM ${item.workoutId}`}</strong><span style={{ display: "block", fontSize: 12, color: "#999", marginTop: 5 }}>{formatDate(item.date)} · {item.runData ? `${item.runData.distance || "–"} km · ${item.runData.duration || "–"} Min.` : `${completedSets} Sätze`}{!item.runData && duration !== null ? ` · ${duration} Min.` : ""}</span></span>
             <span style={{ fontSize: 18 }}>↗</span>
           </button>;
         }) : <p style={{ color: "#999", fontSize: 13 }}>Keine abgeschlossenen Workouts für diese Auswahl.</p>}
@@ -215,6 +225,59 @@ export default function Training() {
       </div>
     </section>
   );
+}
+
+
+function RunEditor({ data, interval, busy, onSave }: { data: RunData; interval: boolean; busy: boolean; onSave: (data: RunData) => void }) {
+  const [draft, setDraft] = useState<RunData>(data);
+  useEffect(() => { setDraft(data); }, [data]);
+  const update = (key: keyof Omit<RunData, "intervals">, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
+  const fields: { key: keyof Omit<RunData, "intervals">; label: string; hint: string }[] = [
+    { key: "duration", label: "Gesamtdauer (Minuten)", hint: "z. B. 35:20 oder 35" },
+    { key: "distance", label: "Gesamtdistanz (km)", hint: "z. B. 5,20" },
+    { key: "avgHeartRate", label: "Ø Herzfrequenz (bpm)", hint: "z. B. 145" },
+    { key: "maxHeartRate", label: "Max. Herzfrequenz (bpm)", hint: "z. B. 178" },
+    { key: "effort", label: "Anstrengung (1–10)", hint: "z. B. 7" },
+  ];
+  const box: React.CSSProperties = { background: "#191919", border: "1px solid #333", borderRadius: 12, padding: 16, marginBottom: 12 };
+  const pace = (() => {
+    const km = Number(draft.distance.replace(",", "."));
+    const parts = draft.duration.split(":").map(Number);
+    const minutes = parts.length === 2 ? parts[0] + parts[1] / 60 : Number(draft.duration.replace(",", "."));
+    if (!km || !Number.isFinite(km) || !minutes || !Number.isFinite(minutes)) return "–";
+    const seconds = Math.round(minutes * 60 / km);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} min/km`;
+  })();
+  return <div>
+    <div style={box}>
+      <div className="eyebrow" style={{ marginBottom: 12 }}>ZEPP / GESAMTWERTE</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+        {fields.map(({ key, label, hint }) => <label key={key} style={{ color: "#bbb", fontSize: 12 }}>{label}<input value={draft[key]} onChange={(e) => update(key, e.target.value)} placeholder={hint} inputMode="decimal" style={{ ...inputStyle, display: "block", marginTop: 6 }} /></label>)}
+      </div>
+      <p style={{ color: "#aaa", fontSize: 13 }}>Ø Pace (berechnet): <strong style={{ color: "#fff" }}>{pace}</strong></p>
+    </div>
+    {interval && <div style={box}>
+      <div className="eyebrow" style={{ marginBottom: 8 }}>4 × 4 MINUTEN / BELASTUNGSINTERVALLE</div>
+      <p style={{ color: "#999", fontSize: 12 }}>Trage nur die vier schnellen 4-Minuten-Abschnitte ein, nicht die Erholungspausen. Pace wird aus 4 Minuten und Distanz berechnet.</p>
+      {draft.intervals.map((entry, i) => {
+        const km = Number(entry.distance.replace(",", "."));
+        const seconds = km > 0 ? Math.round(240 / km) : 0;
+        const paceText = seconds ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} min/km` : "–";
+        const setIntervalField = (key: "distance" | "avgHeartRate", value: string) => setDraft((prev) => ({ ...prev, intervals: prev.intervals.map((row, index) => index === i ? { ...row, [key]: value } : row) }));
+        return <div key={i} style={{ borderTop: "1px solid #333", padding: "12px 0" }}>
+          <strong>Intervall {i + 1}</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginTop: 8 }}>
+            <label style={{ color: "#aaa", fontSize: 12 }}>Distanz (km)<input inputMode="decimal" value={entry.distance} onChange={(e) => setIntervalField("distance", e.target.value)} placeholder="z. B. 0,75" style={{ ...inputStyle, display: "block", marginTop: 5 }} /></label>
+            <label style={{ color: "#aaa", fontSize: 12 }}>Ø Puls (bpm)<input inputMode="numeric" value={entry.avgHeartRate} onChange={(e) => setIntervalField("avgHeartRate", e.target.value)} placeholder="optional" style={{ ...inputStyle, display: "block", marginTop: 5 }} /></label>
+          </div>
+          <div style={{ color: "#aaa", fontSize: 12, marginTop: 8 }}>Pace: {paceText}</div>
+        </div>;
+      })}
+    </div>}
+    <div style={box}><label style={{ color: "#aaa", fontSize: 12 }}>Notizen<textarea value={draft.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Wie hat sich der Lauf angefühlt? Leiste, Wetter, Strecke ..." rows={3} style={{ ...inputStyle, display: "block", marginTop: 8, resize: "vertical" }} /></label></div>
+    <button type="button" disabled={busy} onClick={() => onSave(draft)} style={{ width: "100%", padding: 14, borderRadius: 9, border: "1px solid #777", background: "#292929", color: "#fff", fontWeight: 700, cursor: "pointer" }}>MESSWERTE SPEICHERN</button>
+    <p style={{ color: "#888", fontSize: 12 }}>Speichere deine Werte vor dem Abschluss des Trainings. Änderungen kannst du jederzeit erneut speichern.</p>
+  </div>;
 }
 
 function ExerciseCard({ exercise, session, busy, onToggle, onSave }: { exercise: Exercise; session: Session; busy: boolean; onToggle: () => void; onSave: (index: number, value: SetRecord) => void }) {
