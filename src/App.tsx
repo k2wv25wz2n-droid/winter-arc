@@ -42,7 +42,7 @@ const navigation = [
   { id: "daily", label: "Daily Plan", icon: "▦" },
   { id: "training", label: "Training", icon: "↗" },
   { id: "habits", label: "Habits", icon: "◉" },
-  { id: "quests", label: "Sidequests", icon: "✳" },
+  { id: "quests", label: "Sidequests", icon: "◇" },
   { id: "performance", label: "Performance", icon: "⌁" },
   { id: "journal", label: "Journal", icon: "▤" },
 ];
