@@ -326,14 +326,24 @@ export default function DailyPlan() {
   }
 
   return (
-    <section style={{ maxWidth: "900px", paddingBottom: "100px" }}>
-      <div className="eyebrow">DAILY EXECUTION</div>
-
-      <h1 style={{ margin: "12px 0" }}>Daily Plan.</h1>
-
-      <p style={{ color: "#888", marginBottom: "30px" }}>
-        Plan your day. Execute with discipline.
-      </p>
+    <section
+      style={{
+        width: "100%",
+        maxWidth: "1000px",
+        boxSizing: "border-box",
+        padding: "28px clamp(16px, 3vw, 40px) 100px",
+        margin: "0 auto",
+      }}
+    >
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">DAILY EXECUTION</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Daily Plan.
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Plan your day. Execute with discipline.
+        </p>
+      </header>
 
       <div className="panel" style={{ marginBottom: "22px" }}>
         <div className="eyebrow">SELECTED DAY</div>
