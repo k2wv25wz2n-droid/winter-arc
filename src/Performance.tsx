@@ -94,10 +94,16 @@ export default function Performance() {
   }, [days, checkouts, sessions, period]);
   const ready = loaded.every(Boolean);
   const maxWorkouts = Math.max(1, ...stats.weekly.map(w => w.workouts));
-  return <section style={{ maxWidth: 980, margin: "0 auto", padding: "12px 0 90px", color: "#f5f5f5" }}>
-    <div className="eyebrow">WINTER ARC / ANALYTICS</div>
-    <h1 style={{ fontSize: "clamp(30px, 6vw, 48px)", margin: "12px 0 8px" }}>Your Performance.</h1>
-    <p style={{ color: "#999", marginBottom: 24 }}>Dein Fortschritt. Basierend auf deinen echten Einträgen.</p>
+  return <section style={{ width: "100%", maxWidth: "1000px", boxSizing: "border-box", padding: "28px clamp(16px, 3vw, 40px) 100px", margin: "0 auto", color: "#f5f5f5" }}>
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">WINTER ARC / ANALYTICS</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Your Performance.
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Dein Fortschritt. Basierend auf deinen echten Einträgen.
+        </p>
+      </header>
     <div style={{ display: "flex", gap: 8, marginBottom: 22, flexWrap: "wrap" }}>
       {(["arc", "all"] as const).map(p => <button key={p} onClick={() => setPeriod(p)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #444", background: period === p ? "#eee" : "#222", color: period === p ? "#111" : "#eee", fontWeight: 700, cursor: "pointer" }}>{p === "arc" ? "WINTER ARC · 55 TAGE" : "GESAMTER ZEITRAUM"}</button>)}
     </div>

@@ -146,10 +146,16 @@ export default function Training() {
   }
 
   return (
-    <section style={{ maxWidth: 950, margin: "0 auto", padding: "12px 0 70px", color: "#f5f5f5" }}>
-      <div className="eyebrow">WINTER ARC / TRAINING</div>
-      <h1 style={{ fontSize: "clamp(30px, 6vw, 48px)", margin: "12px 0 8px" }}>Train. Track. Progress.</h1>
-      <p style={{ color: "#999", marginBottom: 24 }}>Deine festen Workouts. Jeder Satz zählt.</p>
+    <section style={{ width: "100%", maxWidth: "1000px", boxSizing: "border-box", padding: "28px clamp(16px, 3vw, 40px) 100px", margin: "0 auto", color: "#f5f5f5" }}>
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">WINTER ARC / TRAINING</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Train. Track. Progress.
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Deine festen Workouts. Jeder Satz zählt.
+        </p>
+      </header>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginBottom: 22 }}>
         {workouts.map((item) => <button key={item.id} type="button" onClick={() => setWorkoutId(item.id)} style={{ cursor: "pointer", borderRadius: 12, padding: "16px 8px", background: item.id === workoutId ? "#f5f5f5" : "#1c1c1c", color: item.id === workoutId ? "#111" : "#ddd", border: "1px solid #383838", fontWeight: 700 }}><span style={{ display: "block", fontSize: 11, opacity: .65, marginBottom: 5 }}>{item.day}</span>GYM {item.id}</button>)}
       </div>

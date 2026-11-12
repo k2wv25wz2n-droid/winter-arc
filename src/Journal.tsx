@@ -109,10 +109,17 @@ export default function Journal() {
   }
 
   return (
-    <div style={{ maxWidth: 1040, margin: "0 auto", padding: "20px 0 80px", color: "#f5f5f5" }}>
-      <div className="eyebrow">REFLECTION / WINTER ARC</div>
-      <h1 style={{ margin: "8px 0" }}>Journal</h1>
-      <p style={{ ...muted, marginBottom: 24 }}>Dein kompletter Tagesabschluss: Schlaf, Wasser, Energie, Ernährung und Reflexion an einem Ort.</p>
+    <div style={{ width: "100%", maxWidth: "1000px", boxSizing: "border-box", padding: "28px clamp(16px, 3vw, 40px) 100px", margin: "0 auto", color: "#f5f5f5" }}>
+
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">REFLECTION / WINTER ARC</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Journal
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Dein kompletter Tagesabschluss: Schlaf, Wasser, Energie, Ernährung und Reflexion an einem Ort.
+        </p>
+      </header>
       {error && <p role="alert" style={{ color: "#ff8888" }}>{error}</p>}
       {notice && <p role="status" style={{ color: "#bcbcbc" }}>{notice}</p>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 310px), 1fr))", gap: 18, alignItems: "start" }}>

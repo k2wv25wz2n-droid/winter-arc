@@ -419,34 +419,17 @@ export default function Sidequests() {
 
   return (
     <section
-      style={{
-        maxWidth: 980,
-        margin: "0 auto",
-        padding: "12px 0 90px",
-        color: "#f5f5f5",
-      }}
+      style={{ width: "100%", maxWidth: "1000px", boxSizing: "border-box", padding: "28px clamp(16px, 3vw, 40px) 100px", margin: "0 auto", color: "#f5f5f5" }}
     >
-      <div className="eyebrow">
-        WINTER ARC / SIDE MISSIONS
-      </div>
-
-      <h1
-        style={{
-          fontSize: "clamp(30px, 6vw, 48px)",
-          margin: "12px 0 8px",
-        }}
-      >
-        Extra mile.
-      </h1>
-
-      <p
-        style={{
-          color: "#999",
-          marginBottom: 24,
-        }}
-      >
-        Freiwillige Challenges. 1–5 Tage. Jeder Tag zählt.
-      </p>
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">WINTER ARC / SIDE MISSIONS</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Extra mile.
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Freiwillige Challenges. 1–5 Tage. Jeder Tag zählt.
+        </p>
+      </header>
 
       {error && (
         <p role="alert" style={{ color: "#ff8888" }}>

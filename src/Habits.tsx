@@ -149,10 +149,16 @@ export default function Habits() {
     catch (e) { console.error(e); setSaveError("Habit konnte nicht archiviert werden."); }
     finally { setBusy(false); }
   }
-  return <section style={{ maxWidth: 980, margin: "0 auto", padding: "12px 0 90px", color: "#f5f5f5" }}>
-    <div className="eyebrow">WINTER ARC / CONSISTENCY</div>
-    <h1 style={{ fontSize: "clamp(30px, 6vw, 48px)", margin: "12px 0 8px" }}>Build consistency.</h1>
-    <p style={{ color: "#999", marginBottom: 24 }}>Deine Gewohnheiten. Jeden Tag ein bisschen besser.</p>
+  return <section style={{ width: "100%", maxWidth: "1000px", boxSizing: "border-box", padding: "28px clamp(16px, 3vw, 40px) 100px", margin: "0 auto", color: "#f5f5f5" }}>
+      <header style={{ marginBottom: "32px" }}>
+        <div className="eyebrow">WINTER ARC / CONSISTENCY</div>
+        <h1 style={{ margin: "14px 0 10px", lineHeight: 1.12 }}>
+          Build consistency.
+        </h1>
+        <p style={{ color: "#888", margin: 0 }}>
+          Deine Gewohnheiten. Jeden Tag ein bisschen besser.
+        </p>
+      </header>
     {(error || saveError) && <p role="alert" style={{ color: "#ff8888" }}>{error || saveError}</p>}
     {!ready ? <p style={muted}>Habits werden geladen ...</p> : <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 20 }}>
