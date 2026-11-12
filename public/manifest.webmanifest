@@ -1,0 +1,19 @@
+
+{
+  "name": "Winter Arc 2026/27",
+  "short_name": "Winter Arc",
+  "description": "55 Days. One Mission.",
+  "start_url": "/winter-arc/",
+  "scope": "/winter-arc/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "icons": [
+    {
+      "src": "/winter-arc/app-icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

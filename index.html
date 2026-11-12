@@ -1,11 +1,57 @@
+
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>winter-arc</title>
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>Winter Arc 2026/27</title>
+
+    <!-- Neues Winter-Arc-App-Icon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="%BASE_URL%app-icon.png"
+    />
+
+    <!-- Icon für iPhone und iPad -->
+    <link
+      rel="apple-touch-icon"
+      href="%BASE_URL%app-icon.png"
+    />
+
+    <!-- Web-App-Konfiguration -->
+    <link
+      rel="manifest"
+      href="%BASE_URL%manifest.webmanifest"
+    />
+
+    <!-- Darstellung als installierte Web-App -->
+    <meta
+      name="apple-mobile-web-app-capable"
+      content="yes"
+    />
+
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black"
+    />
+
+    <meta
+      name="apple-mobile-web-app-title"
+      content="Winter Arc"
+    />
+
+    <meta
+      name="theme-color"
+      content="#080808"
+    />
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
