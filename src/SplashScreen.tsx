@@ -76,13 +76,13 @@ const players: Player[] = [
     image: "podolski.jpg",
   },
   {
-    name: "Anthony Modeste",
+    name: "Jan Thielmann",
     group: "koeln",
     line: "VERTRAU AUF DEINE STÄRKEN.",
     image: "modeste.jpg",
   },
   {
-    name: "Timo Horn",
+    name: "Marvin Schwäbe",
     group: "koeln",
     line: "DEIN NÄCHSTER EINGRIFF ZÄHLT.",
     image: "horn.jpg",
